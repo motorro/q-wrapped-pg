@@ -30,9 +30,16 @@ The wrapper will reject upon connection error or `operation` failure.
 The wrapper takes care of correctly cleaning up either client by calling `done` or `client.end` internally when your
 `operation` finishes as long as a `promise` is returned from it.
 
-## Example
+## Examples
 
 Here is a slightly modified original example from [node-postgres page](https://github.com/brianc/node-postgres).
+
+### pooled
+
+Uses node-postgres pooling service to get a client for you.
+Return a promise from your `operation` and `done` callback provided to original `pg.query` callback will be called after
+the `operation` promise is fulfilled or rejected.
+If connection error occurs, `operation` never gets called.
 
 ```javascript
   var qpg = require("q-wrapped-pg");
@@ -65,7 +72,7 @@ Here is a slightly modified original example from [node-postgres page](https://g
           // Output: Passed param: 1
       },
       function(reason) {
-          console.log("Database error: ");
+          console.log("Connection or query error: ");
           console.log(reason);
       }
   ).finally(
@@ -75,7 +82,16 @@ Here is a slightly modified original example from [node-postgres page](https://g
           qpg.pg.end();
       }
   );
+```
 
+### nonPooled
+
+Creates a new node-postgres `Client` and connects it to database.
+Your operation should follow the same guideline - just return a promise and `client.end` will be called however the
+promise fulfills.
+If connection error occurs, `operation` never gets called.
+
+```javascript
   // Create new `Client` instance and use it
   qpg.nonPooled(
       conString,
@@ -102,7 +118,7 @@ Here is a slightly modified original example from [node-postgres page](https://g
           // Output: Current date/time: Fri Feb 06 2015 03:16:35 GMT+0000 (UTC)
       },
       function(reason) {
-          console.log("Database error: ");
+          console.log("Connection or query error: ");
           console.log(reason);
       }
   );
