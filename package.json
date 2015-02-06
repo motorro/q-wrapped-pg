@@ -1,0 +1,38 @@
+{
+  "name": "q-wrapped-pg",
+  "version": "0.0.1",
+  "description": "A Q-promise node-postgres library wrapper",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:motorro/q-wrapped-pg.git"
+  },
+  "keywords": [
+    "postgres",
+    "pg",
+    "promise"
+  ],
+  "author": "Motorro <motorro@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/motorro/q-wrapped-pg/issues"
+  },
+  "homepage": "https://github.com/motorro/q-wrapped-pg/issues",
+  "peerDependencies": {
+    "q": "^1.0",
+    "pg": "^1.0"
+  },
+  "devDependencies": {
+    "mocha": "^2.1.0",
+    "chai": "^1.10.0",
+    "chai-as-promised": "^4.1.1",
+    "sinon": "^1.12.2",
+    "sinon-chai": "^2.6.0",
+    "proxyquire": "^1.3.1",
+    "pg": "^4.2",
+    "q": "^1.0"
+  }
+}
