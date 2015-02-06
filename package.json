@@ -23,7 +23,7 @@
   "homepage": "https://github.com/motorro/q-wrapped-pg/issues",
   "peerDependencies": {
     "q": "^1.0",
-    "pg": "^1.0"
+    "pg": ">=1.0.0 <5"
   },
   "devDependencies": {
     "mocha": "^2.1.0",
