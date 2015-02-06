@@ -36,9 +36,9 @@ Here is a slightly modified original example from [node-postgres page](https://g
 
 ### pooled
 
-Uses node-postgres pooling service to get a client for you.
-Return a promise from your `operation` and `done` callback provided to original `pg.query` callback will be called after
-the `operation` promise is fulfilled or rejected.
+Uses node-postgres pooling service to get a client for you. 'Client' instance is passed to your function as a first
+parameter. Return a promise from your `operation` and `done` callback provided to original `pg.query` callback will
+be called after the `operation` promise is fulfilled or rejected.
 If connection error occurs, `operation` never gets called.
 
 ```javascript
@@ -87,8 +87,8 @@ If connection error occurs, `operation` never gets called.
 ### nonPooled
 
 Creates a new node-postgres `Client` and connects it to database.
-Your operation should follow the same guideline - just return a promise and `client.end` will be called however the
-promise fulfills.
+Your operation should follow the same guideline - accept a 'Client' as a first param and return a promise and
+`client.end` will be called whenever the promise fulfills or rejects.
 If connection error occurs, `operation` never gets called.
 
 ```javascript
