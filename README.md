@@ -28,7 +28,7 @@ Either function is expecting two or more parameters:
 The wrapper will reject upon connection error or `operation` failure.
 
 The wrapper takes care of correctly cleaning up either client by calling `done` or `client.end` internally when your
-`operation` finishes sync or async way (being wrapped to `Q-promise`).
+`operation` finishes as long as a `promise` is returned from it.
 
 ## Example
 
