@@ -88,7 +88,7 @@ If connection error occurs, `operation` never gets called.
 
 Creates a new node-postgres `Client` and connects it to database.
 Your operation should follow the same guideline - accept a `Client` as a first param, use it and return a promise.
-`client.end` will be called whenever your promise fulfills or rejects.
+`Client.end` will be called whenever your promise fulfills or rejects.
 If connection error occurs, `operation` never gets called.
 
 ```javascript
