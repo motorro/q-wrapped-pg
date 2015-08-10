@@ -43,7 +43,7 @@ function Client(config) {
 Client.prototype.connect = function(callback) {
     var that = this;
     process.nextTick(function(){
-        var err = that.config.connectionError || null;
+        var err = that.config && that.config.connectionError || null;
         callback(err);
     });
 };
@@ -59,18 +59,22 @@ Client.prototype.query = function(query, args, callback) {
     var that = this;
     process.nextTick(function(){
         var config = that.config;
-        var err = config.queryError || null;
-        var result = config.queryResult || null;
-        if ("function" === typeof config.queryValidator) {
-            var validationResult = config.queryValidator(query, args);
-            if (validationResult && "object" === typeof validationResult) {
-                err = validationResult.err || null;
-                result = validationResult.result || null;
-            } else {
-                err = validationResult;
+        if (null == config) {
+            return callback();
+        } else {
+            var err = config.queryError || null;
+            var result = config.queryResult || null;
+            if ("function" === typeof config.queryValidator) {
+                var validationResult = config.queryValidator(query, args);
+                if (validationResult && "object" === typeof validationResult) {
+                    err = validationResult.err || null;
+                    result = validationResult.result || null;
+                } else {
+                    err = validationResult;
+                }
             }
+            return callback(err, result);
         }
-        callback(err, result);
     });
 };
 

@@ -35,6 +35,20 @@ function test(fn, description) {
                 }
             );
         });
+        it ("should support using pg.defaults", function(done){
+            var operation = function(c) {
+                expect(c.config).to.be.null;
+                return Q();
+            };
+            fn(operation).done(
+                function() {
+                    done();
+                },
+                function(err) {
+                    done(err);
+                }
+            );
+        });
         it ("should pass pg client as a first arg", function(done){
             var operation = sinon.spy();
             fn("connection string", operation).done(
