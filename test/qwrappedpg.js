@@ -184,3 +184,63 @@ describe ("DB Connection", function() {
         "non-pooled"
     );
 });
+
+describe ("Query", function() {
+    it ("should pass SQL to PG-Client and return result", function(){
+        var sql = "SELECT NOW() as t";
+        var expectedDateTime = "2015-08-12 07:00:07.204506+00";
+        pgStub.defaults = {
+            queryValidator: function (query) {
+                query.should.equal(sql);
+                return {
+                    result: {
+                        rows: [{
+                            t: expectedDateTime
+                        }]
+                    }
+                };
+            }
+        };
+        return Connection.query(sql).should.eventually.deep.equal(
+            [
+                [{
+                    t: expectedDateTime
+                }],
+                {
+                    rows: [{
+                        t: expectedDateTime
+                    }]
+                }
+            ]
+        );
+    });
+    it ("should pass params to PG-Client", function(){
+        var sql = "SELECT $1::text as name";
+        var params = ["motorro"];
+        pgStub.defaults = {
+            queryValidator: function (query, vars) {
+                query.should.equal(sql);
+                vars.should.deep.equal(params);
+                return {
+                    result: {
+                        rows: [{
+                            name: "motorro"
+                        }]
+                    }
+                };
+            }
+        };
+        return Connection.query(sql, params).should.eventually.deep.equal(
+            [
+                [{
+                    name: params[0]
+                }],
+                {
+                    rows: [{
+                        name: params[0]
+                    }]
+                }
+            ]
+        );
+    });
+});

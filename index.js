@@ -71,6 +71,21 @@ function performOnNonPooledConnection (config, operation) {
     });
 }
 
+/**
+ * Performs query on pooled connection using pg.defaults or environment variables.
+ * Similar to [node-pg-query](https://github.com/brianc/node-pg-query)
+ * @param {string} sql SQL Query
+ * @param {object[]} [params] Optional query params
+ * @returns {Q.Promise} Array: [rows, result]
+ */
+function performPooledQuery (sql, params) {
+    return performOnPooledConnection(function(client) {
+        return Q.ninvoke(client, 'query', sql, params);
+    }).then(function (result) {
+        return [result.rows, result];
+    });
+}
+
 module.exports = {
     /**
      * Node-postgres to avoid extra require and to take defaults from
@@ -79,7 +94,9 @@ module.exports = {
     /**
      * Performs operation taking a connection from connection pool
      * Pooling is made using `config` as a key as described in original documentation
-     * @param {string|Object} config Connection string or options
+     * @param {string|Object} config Connection string or options. If omitted (passing operation as a first arg)
+     *                               the environment variables or pg.defaults will be used. Use exported `pg` to
+     *                               set defaults.
      * @param {Function} operation Operation to perform. Established connection is passed as an argument
      * @param {...*} [operationArgs] Operation arguments
      * @returns {Q.promise}
@@ -87,10 +104,20 @@ module.exports = {
     pooled: performOnPooledConnection,
     /**
      * Performs operation on a non-pooled connection
-     * @param {string|Object} config Connection string or options
+     * @param {string|Object} config Connection string or options. If omitted (passing operation as a first arg)
+     *                               the environment variables or pg.defaults will be used. Use exported `pg` to
+     *                               set defaults.
      * @param {Function} operation Operation to perform. Established connection is passed as an argument
      * @param {...*} [operationArgs] Operation arguments
      * @returns {Q.promise}
      */
-    nonPooled: performOnNonPooledConnection
+    nonPooled: performOnNonPooledConnection,
+    /**
+     * Performs query on pooled connection using pg.defaults or environment variables.
+     * Similar to [node-pg-query](https://github.com/brianc/node-pg-query)
+     * @param {string} sql SQL Query
+     * @param {object[]} [params] Optional query params
+     * @returns {Q.Promise} Array: [rows, result]
+     */
+    query: performPooledQuery
 };
