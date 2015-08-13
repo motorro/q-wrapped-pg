@@ -16,6 +16,7 @@ dependencies on both libraries installed.
 ## Usage
 
 ### Quick and easy
+
 `(1.1.x)`
 If you need to perform just a quick request and get a result the `query` function might be enough for you. It is similar
 to [node-pg-query](https://github.com/brianc/node-pg-query). It uses `pg.defaults` or environment variables as a source 
