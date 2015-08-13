@@ -5,10 +5,21 @@
  * Time: 6:54
  */
 
-var Q = require("q");
-var pg = require("pg");
-var connect = Q.nbind(pg.connect, pg);
 "use strict";
+
+var Q = require("q");
+
+var pg, connect;
+/**
+ * Resets pg instance to use
+ * Useful to pass an existent pg (say with set defaults) to wrapper
+ * @param instance
+ */
+function setPg(instance) {
+    pg = instance;
+    connect = Q.nbind(pg.connect, pg);
+}
+setPg(require("pg"));
 
 /**
  * Checks that operation is a function
@@ -91,6 +102,15 @@ module.exports = {
      * Node-postgres to avoid extra require and to take defaults from
      */
     pg: pg,
+    /**
+     * Resets pg instance to use
+     * Useful to pass an existent pg (say with set defaults) to wrapper
+     * @param instance
+     */
+    setPg: function(instance) {
+        this.pg = instance;
+        setPg(instance);
+    },
     /**
      * Performs operation taking a connection from connection pool
      * Pooling is made using `config` as a key as described in original documentation

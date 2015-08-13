@@ -244,3 +244,81 @@ describe ("Query", function() {
         );
     });
 });
+
+describe ("setPg", function(){
+    it ('should use imported pg by default', function() {
+        pgStub.defaults = {
+            queryValidator: function () {
+                return {
+                    result: {
+                        rows: [{
+                            source: "import"
+                        }]
+                    }
+                };
+            }
+        };
+        return Connection.query().should.eventually.deep.equal(
+            [
+                [{
+                    source: "import"
+                }],
+                {
+                    rows: [{
+                        source: "import"
+                    }]
+                }
+            ]
+        );
+    });
+    it.only ('should should switch to set pg', function() {
+        pgStub.defaults = {
+            queryValidator: function () {
+                return {
+                    result: {
+                        rows: [{
+                            source: "import"
+                        }]
+                    }
+                };
+            }
+        };
+
+        var newPg = (function(inst){
+            var result = {};
+            Object.keys(inst).forEach(function(key){
+                result[key] = inst[key];
+            });
+            return result;
+        })(pgStub);
+
+        newPg.defaults = {
+            queryValidator: function () {
+                return {
+                    result: {
+                        rows: [{
+                            source: "explicitlySet"
+                        }]
+                    }
+                };
+            }
+        };
+
+        newPg.should.not.be.equal(pgStub);
+        newPg.defaults.should.not.be.equal(pgStub.defaults);
+
+        Connection.setPg(newPg);
+        return Connection.query().should.eventually.deep.equal(
+            [
+                [{
+                    source: "explicitlySet"
+                }],
+                {
+                    rows: [{
+                        source: "explicitlySet"
+                    }]
+                }
+            ]
+        );
+    });
+});
