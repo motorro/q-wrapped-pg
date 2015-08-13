@@ -42,7 +42,7 @@ function Client(config) {
  */
 Client.prototype.connect = function(callback) {
     var that = this;
-    var config = that.config || module.exports.defaults;
+    var config = that.config;
     process.nextTick(function(){
         var err = config && config.connectionError || null;
         callback(err);
@@ -59,7 +59,7 @@ Client.prototype.connect = function(callback) {
 Client.prototype.query = function(query, args, callback) {
     var that = this;
     process.nextTick(function(){
-        var config = that.config || module.exports.defaults;
+        var config = that.config;
         if (null == config) {
             return callback();
         } else {
@@ -94,7 +94,7 @@ module.exports = {
      * @param {Function} callback
      */
     connect: function (config, callback) {
-        var client = new Client(config);
+        var client = new Client(config || this.defaults);
         client.connect(function(err) {
             if (err) {
                 callback(err);

@@ -171,6 +171,9 @@ function test(fn, description) {
 }
 
 describe ("DB Connection", function() {
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
     test (
         function() {
             return Connection.pooled.apply(Connection, arguments)
@@ -186,6 +189,9 @@ describe ("DB Connection", function() {
 });
 
 describe ("Query", function() {
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
     it ("should pass SQL to PG-Client and return result", function(){
         var sql = "SELECT NOW() as t";
         var expectedDateTime = "2015-08-12 07:00:07.204506+00";
@@ -246,6 +252,9 @@ describe ("Query", function() {
 });
 
 describe ("setPg", function(){
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
     it ('should use imported pg by default', function() {
         pgStub.defaults = {
             queryValidator: function () {
@@ -271,7 +280,7 @@ describe ("setPg", function(){
             ]
         );
     });
-    it.only ('should should switch to set pg', function() {
+    it ('should should switch to set pg', function() {
         pgStub.defaults = {
             queryValidator: function () {
                 return {
