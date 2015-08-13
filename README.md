@@ -15,26 +15,82 @@ dependencies on both libraries installed.
 
 ## Usage
 
+### Quick and easy
+`(1.1.x)`
+If you need to perform just a quick request and get a result the `query` function might be enough for you. It is similar
+to [node-pg-query](https://github.com/brianc/node-pg-query). It uses `pg.defaults` or environment variables as a source 
+for connection settings. You may use `pg` object exported from the library to set them or call `setPg` to set your
+pre-configured instance to be used by wrapper.
+
+### Examples
+
+Simple query using built-in `pg.defaults`:
+```javascript
+  var qpg = require("q-wrapped-pg");
+  
+  // Set defaults
+  qpg.pg.defaults = {
+    user: "username",
+    password: "password",
+    database: "database",
+    host: "localhost",
+  };
+  
+  // Query
+  qpg.query("SELECT NOW() as t").spread(function(rows, result){
+      console.log("Current date/time: " + rows[0].t);
+      // 2015-08-12 07:00:07.204506+00
+      console.log("SQL: " + result.command);
+  });
+```
+ 
+Query with param passing and an external `pg` instance:
+```javascript
+
+  // Somewhere else...
+  var pg  = require("pg"); 
+  // Set defaults
+  pg.defaults = {
+    user: "username",
+    password: "password",
+    database: "database",
+    host: "localhost",
+  };
+
+  // Where you want to use wrapper
+  var qpg = require("q-wrapped-pg");
+  // Set a pre-configured 'pg' instance to wrapper
+  qpg.setPg(pg);
+  
+  // Query
+  qpg.query("SELECT $1::text as name", ["motorro"]).spread(function(rows, result){
+      console.log("My name is: " + rows[0].name);
+  });
+```
+
+### Verbose
+
 Two methods are available:
-* `pooled` - use to request a database `Client` from a node-postgres client pool
-* `nonPooled` - creates a new node-postgres `Client` instance.
+*   `pooled` - use to request a database `Client` from a node-postgres client pool
+*   `nonPooled` - creates a new node-postgres `Client` instance.
 
 Either function is expecting two or more parameters:
-* `connection options` - string or object according to [node-postgres documentation](https://github.com/brianc/node-postgres/wiki/Client#method-connect).
-* `operation` - a function that is being called upon connection is established. Place your request code here.
-  A `Client` instance will be passed to the function as a first parameter.
-* The rest of params passed to function will be appended to `operation` call.
+*   `connection options` - string or object according to [node-postgres documentation](https://github.com/brianc/node-postgres/wiki/Client#method-connect).
+    Since version `1.1.x` the param may be omitted to use `pg.defaults` or environment variables.
+*   `operation` - a function that is being called upon connection is established. Place your request code here.
+    A `Client` instance will be passed to the function as a first parameter.
+*   The rest of params passed to function will be appended to `operation` call.
 
 The wrapper will reject upon connection error or `operation` failure.
 
 The wrapper takes care of correctly cleaning up either client by calling `done` or `client.end` internally when your
 `operation` finishes as long as a `promise` is returned from it.
 
-## Examples
+### Examples
 
 Here is a slightly modified original example from [node-postgres page](https://github.com/brianc/node-postgres).
 
-### pooled
+#### pooled
 
 Uses node-postgres pooling service to get a client for you. `Client` instance is passed to your function as a first
 parameter. Return a promise from your `operation` and `done` callback provided to original `pg.query` callback will
@@ -84,7 +140,7 @@ If connection error occurs, `operation` never gets called.
   );
 ```
 
-### nonPooled
+#### nonPooled
 
 Creates a new node-postgres `Client` and connects it to database.
 Your operation should follow the same guideline - accept a `Client` as a first param, use it and return a promise.
