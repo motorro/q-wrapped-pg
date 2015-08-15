@@ -35,6 +35,20 @@ function test(fn, description) {
                 }
             );
         });
+        it ("should support using pg.defaults", function(done){
+            var operation = function(c) {
+                expect(c.config).to.be.null;
+                return Q();
+            };
+            fn(operation).done(
+                function() {
+                    done();
+                },
+                function(err) {
+                    done(err);
+                }
+            );
+        });
         it ("should pass pg client as a first arg", function(done){
             var operation = sinon.spy();
             fn("connection string", operation).done(
@@ -157,6 +171,9 @@ function test(fn, description) {
 }
 
 describe ("DB Connection", function() {
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
     test (
         function() {
             return Connection.pooled.apply(Connection, arguments)
@@ -169,4 +186,148 @@ describe ("DB Connection", function() {
         },
         "non-pooled"
     );
+});
+
+describe ("Query", function() {
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
+    it ("should pass SQL to PG-Client and return result", function(){
+        var sql = "SELECT NOW() as t";
+        var expectedDateTime = "2015-08-12 07:00:07.204506+00";
+        pgStub.defaults = {
+            queryValidator: function (query) {
+                query.should.equal(sql);
+                return {
+                    result: {
+                        rows: [{
+                            t: expectedDateTime
+                        }]
+                    }
+                };
+            }
+        };
+        return Connection.query(sql).should.eventually.deep.equal(
+            [
+                [{
+                    t: expectedDateTime
+                }],
+                {
+                    rows: [{
+                        t: expectedDateTime
+                    }]
+                }
+            ]
+        );
+    });
+    it ("should pass params to PG-Client", function(){
+        var sql = "SELECT $1::text as name";
+        var params = ["motorro"];
+        pgStub.defaults = {
+            queryValidator: function (query, vars) {
+                query.should.equal(sql);
+                vars.should.deep.equal(params);
+                return {
+                    result: {
+                        rows: [{
+                            name: "motorro"
+                        }]
+                    }
+                };
+            }
+        };
+        return Connection.query(sql, params).should.eventually.deep.equal(
+            [
+                [{
+                    name: params[0]
+                }],
+                {
+                    rows: [{
+                        name: params[0]
+                    }]
+                }
+            ]
+        );
+    });
+});
+
+describe ("setPg", function(){
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
+    it ('should use imported pg by default', function() {
+        pgStub.defaults = {
+            queryValidator: function () {
+                return {
+                    result: {
+                        rows: [{
+                            source: "import"
+                        }]
+                    }
+                };
+            }
+        };
+        return Connection.query().should.eventually.deep.equal(
+            [
+                [{
+                    source: "import"
+                }],
+                {
+                    rows: [{
+                        source: "import"
+                    }]
+                }
+            ]
+        );
+    });
+    it ('should should switch to set pg', function() {
+        pgStub.defaults = {
+            queryValidator: function () {
+                return {
+                    result: {
+                        rows: [{
+                            source: "import"
+                        }]
+                    }
+                };
+            }
+        };
+
+        var newPg = (function(inst){
+            var result = {};
+            Object.keys(inst).forEach(function(key){
+                result[key] = inst[key];
+            });
+            return result;
+        })(pgStub);
+
+        newPg.defaults = {
+            queryValidator: function () {
+                return {
+                    result: {
+                        rows: [{
+                            source: "explicitlySet"
+                        }]
+                    }
+                };
+            }
+        };
+
+        newPg.should.not.be.equal(pgStub);
+        newPg.defaults.should.not.be.equal(pgStub.defaults);
+
+        Connection.setPg(newPg);
+        return Connection.query().should.eventually.deep.equal(
+            [
+                [{
+                    source: "explicitlySet"
+                }],
+                {
+                    rows: [{
+                        source: "explicitlySet"
+                    }]
+                }
+            ]
+        );
+    });
 });

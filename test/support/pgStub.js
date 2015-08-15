@@ -42,8 +42,9 @@ function Client(config) {
  */
 Client.prototype.connect = function(callback) {
     var that = this;
+    var config = that.config;
     process.nextTick(function(){
-        var err = that.config.connectionError || null;
+        var err = config && config.connectionError || null;
         callback(err);
     });
 };
@@ -59,18 +60,22 @@ Client.prototype.query = function(query, args, callback) {
     var that = this;
     process.nextTick(function(){
         var config = that.config;
-        var err = config.queryError || null;
-        var result = config.queryResult || null;
-        if ("function" === typeof config.queryValidator) {
-            var validationResult = config.queryValidator(query, args);
-            if (validationResult && "object" === typeof validationResult) {
-                err = validationResult.err || null;
-                result = validationResult.result || null;
-            } else {
-                err = validationResult;
+        if (null == config) {
+            return callback();
+        } else {
+            var err = config.queryError || null;
+            var result = config.queryResult || null;
+            if ("function" === typeof config.queryValidator) {
+                var validationResult = config.queryValidator(query, args);
+                if (validationResult && "object" === typeof validationResult) {
+                    err = validationResult.err || null;
+                    result = validationResult.result || null;
+                } else {
+                    err = validationResult;
+                }
             }
+            return callback(err, result);
         }
-        callback(err, result);
     });
 };
 
@@ -89,7 +94,7 @@ module.exports = {
      * @param {Function} callback
      */
     connect: function (config, callback) {
-        var client = new Client(config);
+        var client = new Client(config || this.defaults);
         client.connect(function(err) {
             if (err) {
                 callback(err);
