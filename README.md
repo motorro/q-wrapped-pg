@@ -30,20 +30,25 @@ Simple query using built-in `pg.defaults`:
 ```javascript
   var qpg = require("q-wrapped-pg");
   
-  // Set defaults
-  qpg.pg.defaults = {
+  // Set defaults to 'pg' exported from wrapper
+  var config = {
     user: "username",
     password: "password",
     database: "database",
-    host: "localhost",
+    host: "localhost"
   };
-  
-  // Query
-  qpg.query("SELECT NOW() as t").spread(function(rows, result){
-      console.log("Current date/time: " + rows[0].t);
-      // 2015-08-12 07:00:07.204506+00
-      console.log("SQL: " + result.command);
+  Object.keys(config).forEach(function(key){
+      qpg.pg.defaults[key] = config[key];
   });
+
+  // Query
+  qpg.query("SELECT NOW() as t").spread(function(rows, result) {
+      console.log("Current date/time: " + rows[0].t);
+      console.log("SQL: " + result.command);
+  }).finally(function() {
+      // Close database connections
+      qpg.pg.end();
+  }).done();
 ```
  
 Query with param passing and an external `pg` instance:
@@ -52,22 +57,30 @@ Query with param passing and an external `pg` instance:
   // Somewhere else...
   var pg  = require("pg"); 
   // Set defaults
-  pg.defaults = {
+  var config = {
     user: "username",
     password: "password",
     database: "database",
-    host: "localhost",
+    host: "localhost"
   };
+  Object.keys(config).forEach(function(key) {
+      pg.defaults[key] = config[key];
+  });
+
+  // -----------------------------------------
 
   // Where you want to use wrapper
   var qpg = require("q-wrapped-pg");
-  // Set a pre-configured 'pg' instance to wrapper
+  // Set a pre-configured 'pg' instance (or your subclass) to wrapper
   qpg.setPg(pg);
   
   // Query
   qpg.query("SELECT $1::text as name", ["motorro"]).spread(function(rows, result){
       console.log("My name is: " + rows[0].name);
-  });
+  }).finally(function() {
+      // Close database connections
+      pg.end();
+  }).done();
 ```
 
 ### Verbose
