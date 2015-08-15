@@ -45,10 +45,7 @@ Simple query using built-in `pg.defaults`:
   qpg.query("SELECT NOW() as t").spread(function(rows, result) {
       console.log("Current date/time: " + rows[0].t);
       console.log("SQL: " + result.command);
-  }).finally(function() {
-      // Close database connections
-      qpg.pg.end();
-  }).done();
+  });
 ```
  
 Query with param passing and an external `pg` instance:
@@ -77,10 +74,7 @@ Query with param passing and an external `pg` instance:
   // Query
   qpg.query("SELECT $1::text as name", ["motorro"]).spread(function(rows, result){
       console.log("My name is: " + rows[0].name);
-  }).finally(function() {
-      // Close database connections
-      pg.end();
-  }).done();
+  });
 ```
 
 ### Verbose
