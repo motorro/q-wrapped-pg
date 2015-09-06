@@ -23,6 +23,16 @@ function setPg(instance) {
 setPg(require("pg"));
 
 /**
+ * Checks if passed operation is a function or a command-wrapper
+ * @param operation
+ * @returns {boolean}
+ * @private
+ */
+function _isOperation(operation) {
+    return null != operation && ("function" === typeof operation || "function" === typeof operation.execute);
+}
+
+/**
  * Check if operation is already wrapped by any of wrappers
  * If not - wraps with default wrapper
  * Checks if supplied operation looks like a command pattern to be more flexible
@@ -42,17 +52,20 @@ function _checkOperation(operation) {
  * @private
  */
 function _spreadArgs(args) {
-    var sliceFrom = 2;
+    var sliceFrom;
     var config = args[0];
-    var operation = args[1];
-    if ("function" === typeof config) {
+    var operation;
+    if (_isOperation(config)) {
         operation = config;
         config = null;
         sliceFrom = 1;
+    } else {
+        operation = args[1];
+        sliceFrom = 2;
     }
 
     return {
-        operation: operation,
+        operation: _checkOperation(operation),
         config: config,
         opArgs: Array.prototype.slice.call(args, sliceFrom)
     };
@@ -71,7 +84,7 @@ function _spreadArgs(args) {
 function performOnPooledConnection (config, operation) {
     var args = _spreadArgs(arguments);
     return connect(args.config).spread(function(client, done){
-        return Q(args.operation).fapply([client].concat(args.opArgs)).finally(done);
+        return args.operation.execute.apply(void 0, [client].concat(args.opArgs)).finally(done);
     });
 }
 
@@ -88,7 +101,7 @@ function performOnNonPooledConnection (config, operation) {
     var args = _spreadArgs(arguments);
     var client = new pg.Client(args.config);
     return Q.ninvoke(client, "connect").then(function(){
-        return Q(args.operation).fapply([client].concat(args.opArgs)).finally(function(){ client.end(); });
+        return args.operation.execute.apply(void 0, [client].concat(args.opArgs)).finally(function(){ client.end(); });
     });
 }
 
