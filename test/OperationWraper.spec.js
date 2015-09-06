@@ -6,7 +6,6 @@
  */
 "use strict";
 
-var Q = require("q");
 var OperationWrapper = require("../lib/OperationWrapper");
 
 describe ("OperationWrapper", function() {
