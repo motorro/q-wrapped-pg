@@ -8,6 +8,7 @@
 "use strict";
 
 var Q = require("q");
+var OperationWrapper = require("./lib/OperationWrapper");
 
 var pg, connect;
 /**
@@ -22,16 +23,39 @@ function setPg(instance) {
 setPg(require("pg"));
 
 /**
- * Checks that operation is a function
- * @param {Function} operation Function to check
- * @returns {Function}
+ * Check if operation is already wrapped by any of wrappers
+ * If not - wraps with default wrapper
+ * Checks if supplied operation looks like a command pattern to be more flexible
+ * @param {Function/OperationWrapper} operation
+ * @returns {OperationWrapper}
  * @private
  */
 function _checkOperation(operation) {
-    if ("function" !== typeof operation) {
-        throw new TypeError("Passed 'operation' should be a function!")
+    return ("function" === typeof operation.execute) ? operation : new OperationWrapper(operation);
+}
+
+/**
+ * Utility function to spread function arguments between operation and pg function.
+ * Used to call methods without connect options (using defaults).
+ * @param {*[]} args Query function arguments
+ * @returns {Object} Operation, connection options and operation arguments
+ * @private
+ */
+function _spreadArgs(args) {
+    var sliceFrom = 2;
+    var config = args[0];
+    var operation = args[1];
+    if ("function" === typeof config) {
+        operation = config;
+        config = null;
+        sliceFrom = 1;
     }
-    return operation;
+
+    return {
+        operation: operation,
+        config: config,
+        opArgs: Array.prototype.slice.call(args, sliceFrom)
+    };
 }
 
 /**
@@ -45,16 +69,9 @@ function _checkOperation(operation) {
  * @returns {Q.promise}
  */
 function performOnPooledConnection (config, operation) {
-    var sliceFrom = 2;
-    if ("function" === typeof config) {
-        operation = config;
-        config = null;
-        sliceFrom = 1;
-    }
-    operation = _checkOperation(operation);
-    var opArgs = Array.prototype.slice.call(arguments, sliceFrom);
-    return connect(config).spread(function(client, done){
-        return Q(operation).fapply([client].concat(opArgs)).finally(done);
+    var args = _spreadArgs(arguments);
+    return connect(args.config).spread(function(client, done){
+        return Q(args.operation).fapply([client].concat(args.opArgs)).finally(done);
     });
 }
 
@@ -68,17 +85,10 @@ function performOnPooledConnection (config, operation) {
  * @returns {Q.promise}
  */
 function performOnNonPooledConnection (config, operation) {
-    var sliceFrom = 2;
-    if ("function" === typeof config) {
-        operation = config;
-        config = null;
-        sliceFrom = 1;
-    }
-    operation = _checkOperation(operation);
-    var opArgs = Array.prototype.slice.call(arguments, sliceFrom);
-    var client = new pg.Client(config);
+    var args = _spreadArgs(arguments);
+    var client = new pg.Client(args.config);
     return Q.ninvoke(client, "connect").then(function(){
-        return Q(operation).fapply([client].concat(opArgs)).finally(function(){ client.end(); });
+        return Q(args.operation).fapply([client].concat(args.opArgs)).finally(function(){ client.end(); });
     });
 }
 
@@ -91,7 +101,7 @@ function performOnNonPooledConnection (config, operation) {
  */
 function performPooledQuery (sql, params) {
     return performOnPooledConnection(function(client) {
-        return Q.ninvoke(client, 'query', sql, params);
+        return Q.ninvoke(client, "query", sql, params);
     }).then(function (result) {
         return [result.rows, result];
     });

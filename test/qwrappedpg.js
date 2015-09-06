@@ -104,9 +104,6 @@ function test(fn, description) {
                 }
             );
         });
-        it ("should fail if non-function is passed as operation", function(){
-            expect(fn).to.throw(TypeError, "Passed 'operation' should be a function!");
-        });
         describe ("if connection fails", function() {
             var options = null;
             before("Set-up connection that fails", function() {
