@@ -8,6 +8,8 @@
 "use strict";
 
 var Q = require("q");
+var OperationWrapper = require("./lib/OperationWrapper");
+var TransactionWrapper = require("./lib/TransactionWrapper");
 
 var pg, connect;
 /**
@@ -22,16 +24,52 @@ function setPg(instance) {
 setPg(require("pg"));
 
 /**
- * Checks that operation is a function
- * @param {Function} operation Function to check
- * @returns {Function}
+ * Checks if passed operation is a function or a command-wrapper
+ * @param operation
+ * @returns {boolean}
+ * @private
+ */
+function _isOperation(operation) {
+    return null != operation && ("function" === typeof operation || OperationWrapper.isCommand(operation));
+}
+
+/**
+ * Check if operation is already wrapped by any of wrappers
+ * If not - wraps with default wrapper
+ * Checks if supplied operation looks like a command pattern to be more flexible
+ * @param {Function/OperationWrapper} operation
+ * @returns {OperationWrapper}
  * @private
  */
 function _checkOperation(operation) {
-    if ("function" !== typeof operation) {
-        throw new TypeError("Passed 'operation' should be a function!")
+    return ("function" === typeof operation.execute) ? operation : new OperationWrapper(operation);
+}
+
+/**
+ * Utility function to spread function arguments between operation and pg function.
+ * Used to call methods without connect options (using defaults).
+ * @param {*[]} args Query function arguments
+ * @returns {Object} Operation, connection options and operation arguments
+ * @private
+ */
+function _spreadArgs(args) {
+    var sliceFrom;
+    var config = args[0];
+    var operation;
+    if (_isOperation(config)) {
+        operation = config;
+        config = null;
+        sliceFrom = 1;
+    } else {
+        operation = args[1];
+        sliceFrom = 2;
     }
-    return operation;
+
+    return {
+        operation: _checkOperation(operation),
+        config: config,
+        opArgs: Array.prototype.slice.call(args, sliceFrom)
+    };
 }
 
 /**
@@ -45,16 +83,9 @@ function _checkOperation(operation) {
  * @returns {Q.promise}
  */
 function performOnPooledConnection (config, operation) {
-    var sliceFrom = 2;
-    if ("function" === typeof config) {
-        operation = config;
-        config = null;
-        sliceFrom = 1;
-    }
-    operation = _checkOperation(operation);
-    var opArgs = Array.prototype.slice.call(arguments, sliceFrom);
-    return connect(config).spread(function(client, done){
-        return Q(operation).fapply([client].concat(opArgs)).finally(done);
+    var args = _spreadArgs(arguments);
+    return connect(args.config).spread(function(client, done){
+        return args.operation.execute.apply(void 0, [client].concat(args.opArgs)).finally(done);
     });
 }
 
@@ -68,17 +99,10 @@ function performOnPooledConnection (config, operation) {
  * @returns {Q.promise}
  */
 function performOnNonPooledConnection (config, operation) {
-    var sliceFrom = 2;
-    if ("function" === typeof config) {
-        operation = config;
-        config = null;
-        sliceFrom = 1;
-    }
-    operation = _checkOperation(operation);
-    var opArgs = Array.prototype.slice.call(arguments, sliceFrom);
-    var client = new pg.Client(config);
+    var args = _spreadArgs(arguments);
+    var client = new pg.Client(args.config);
     return Q.ninvoke(client, "connect").then(function(){
-        return Q(operation).fapply([client].concat(opArgs)).finally(function(){ client.end(); });
+        return args.operation.execute.apply(void 0, [client].concat(args.opArgs)).finally(function(){ client.end(); });
     });
 }
 
@@ -91,10 +115,19 @@ function performOnNonPooledConnection (config, operation) {
  */
 function performPooledQuery (sql, params) {
     return performOnPooledConnection(function(client) {
-        return Q.ninvoke(client, 'query', sql, params);
+        return Q.ninvoke(client, "query", sql, params);
     }).then(function (result) {
         return [result.rows, result];
     });
+}
+
+/**
+ * Wraps operation with transaction operators: BEGIN and COMMIT/ROLLBACK
+ * @param {Function} operation Operation to perform. Established connection is passed as an argument
+ * @returns {TransactionWrapper} Wrapped operation to pass to query functions
+ */
+function wrapWithTransaction (operation) {
+    return new TransactionWrapper(operation);
 }
 
 module.exports = {
@@ -139,5 +172,11 @@ module.exports = {
      * @param {object[]} [params] Optional query params
      * @returns {Q.Promise} Array: [rows, result]
      */
-    query: performPooledQuery
+    query: performPooledQuery,
+    /**
+     * Wraps operation with transaction operators: BEGIN on success and COMMIT/ROLLBACK on failure
+     * @param {Function} operation Operation to perform. Established connection is passed as an argument
+     * @returns {TransactionWrapper} Wrapped operation to pass to query functions
+     */
+    transaction: wrapWithTransaction
 };

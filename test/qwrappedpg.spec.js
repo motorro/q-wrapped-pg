@@ -10,6 +10,7 @@ var proxyquire =  require('proxyquire').noCallThru();
 var pgStub = require('./support/pgStub');
 
 var Connection = proxyquire('../index.js', { "pg": pgStub });
+var isCommand = require("../lib/OperationWrapper").isCommand;
 
 /**
  * Both functions (pooled, nonPooled) should perform the same for the outside world
@@ -104,9 +105,6 @@ function test(fn, description) {
                 }
             );
         });
-        it ("should fail if non-function is passed as operation", function(){
-            expect(fn).to.throw(TypeError, "Passed 'operation' should be a function!");
-        });
         describe ("if connection fails", function() {
             var options = null;
             before("Set-up connection that fails", function() {
@@ -176,16 +174,60 @@ describe ("DB Connection", function() {
     });
     test (
         function() {
-            return Connection.pooled.apply(Connection, arguments)
+            return Connection.pooled.apply(Connection, arguments);
         },
         "pooled"
     );
     test (
         function() {
-            return Connection.nonPooled.apply(Connection, arguments)
+            return Connection.nonPooled.apply(Connection, arguments);
         },
         "non-pooled"
     );
+});
+
+describe ("Commands", function(){
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
+
+   it ("should be accepted and executed", function(){
+       var paramValue = "some value";
+       var SomeCommand = function() {
+           this.execute = function(client, param) {
+               client.should.be.instanceOf(pgStub.Client);
+               param.should.equal(paramValue);
+               return Q(param);
+           }
+       };
+       return Connection.pooled("connection string", new SomeCommand(), paramValue).should.eventually.equal(paramValue);
+   });
+});
+
+describe ("Transaction", function() {
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
+
+    function applyTransaction(args) {
+        var transactionAt = "function" === typeof args[0] ? 0 : 1;
+        args[transactionAt] = Connection.transaction(args[transactionAt]);
+        return args;
+    }
+
+    test (
+        function() {
+            return Connection.pooled.apply(Connection, applyTransaction(arguments));
+        },
+        "transaction on pooled"
+    );
+    test (
+        function() {
+            return Connection.nonPooled.apply(Connection, applyTransaction(arguments));
+        },
+        "transaction on non-pooled"
+    );
+
 });
 
 describe ("Query", function() {
