@@ -192,3 +192,54 @@ If connection error occurs, `operation` never gets called.
   );
 ```
 
+### Transactions
+
+`(1.2.x)`
+
+If you want your operation (or a complex operation) to be wrapped to transaction operators use `transaction` helper.
+Thus `BEGIN` will be executed using the same client instance before control is handled to your operation. If operation
+succeeds (it's promise gets resolved) the `COMMIT` will be executed otherwise (if operation promise rejects) `ROLLBACK`
+will fire:
+
+```javascript
+  // Create new `Client` instance and use it
+  qpg.pooled(
+      conString,
+      qpg.transaction(function(client) {
+          // A simple query example where a callback function
+          // with error management is fulfilled by Q-promise
+          return Q.ninvoke(
+              client,
+              "query",
+              'SELECT NOW() as "theTime"',
+          ).then(
+              // Produce final result for the outside caller
+              function(result) {
+                  return result.rows[0].theTime;
+              }
+          );
+      });
+  ).done(function(currentDateTime) {
+      console.log("Current date/time: " + currentDateTime);
+  });
+```
+
+### Commands as operations
+
+`(1.2.x)`
+
+Passing a command-pattern object for operation is now supported. The object should have an `execute` method which
+accepts a client instance and returns a promise:
+
+```javascript
+var SomeCommand = function() {
+  this.execute = function(client, param) {
+    return Q("This is a command param: " + param);
+  }
+};
+
+qpg.pooled(conString, new SomeCommand(), "some value").then(function(result){
+  console.log(result);
+});
+```
+
