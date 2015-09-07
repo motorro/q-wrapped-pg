@@ -186,6 +186,24 @@ describe ("DB Connection", function() {
     );
 });
 
+describe ("Commands", function(){
+    beforeEach(function() {
+        pgStub.defaults = null;
+    });
+
+   it ("should be accepted and executed", function(){
+       var paramValue = "some value";
+       var SomeCommand = function() {
+           this.execute = function(client, param) {
+               client.should.be.instanceOf(pgStub.Client);
+               param.should.equal(paramValue);
+               return Q(param);
+           }
+       };
+       return Connection.pooled("connection string", new SomeCommand(), paramValue).should.eventually.equal(paramValue);
+   });
+});
+
 describe ("Transaction", function() {
     beforeEach(function() {
         pgStub.defaults = null;
