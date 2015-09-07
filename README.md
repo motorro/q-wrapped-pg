@@ -5,6 +5,9 @@ It will run your function, giving a ready-to-use `Client` instance using the `Q-
 Both pooled and non-pooled requests are supported - both provided through unified interface which may make switching
 from one to another a bit easier.
 
+[![Build Status](https://travis-ci.org/motorro/q-wrapped-request.svg)](https://travis-ci.org/motorro/q-wrapped-request)
+[![Coverage Status](https://coveralls.io/repos/motorro/q-wrapped-pg/badge.svg?branch=master&service=github)](https://coveralls.io/github/motorro/q-wrapped-pg?branch=master)
+
 ## Installation
 
 ```
