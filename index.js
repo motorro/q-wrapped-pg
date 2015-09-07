@@ -9,6 +9,7 @@
 
 var Q = require("q");
 var OperationWrapper = require("./lib/OperationWrapper");
+var TransactionWrapper = require("./lib/TransactionWrapper");
 
 var pg, connect;
 /**
@@ -29,7 +30,7 @@ setPg(require("pg"));
  * @private
  */
 function _isOperation(operation) {
-    return null != operation && ("function" === typeof operation || "function" === typeof operation.execute);
+    return null != operation && ("function" === typeof operation || OperationWrapper.isCommand(operation));
 }
 
 /**
@@ -120,6 +121,15 @@ function performPooledQuery (sql, params) {
     });
 }
 
+/**
+ * Wraps operation with transaction operators: BEGIN and COMMIT/ROLLBACK
+ * @param {Function} operation Operation to perform. Established connection is passed as an argument
+ * @returns {TransactionWrapper} Wrapped operation to pass to query functions
+ */
+function wrapWithTransaction (operation) {
+    return new TransactionWrapper(operation);
+}
+
 module.exports = {
     /**
      * Node-postgres to avoid extra require and to take defaults from
@@ -162,5 +172,11 @@ module.exports = {
      * @param {object[]} [params] Optional query params
      * @returns {Q.Promise} Array: [rows, result]
      */
-    query: performPooledQuery
+    query: performPooledQuery,
+    /**
+     * Wraps operation with transaction operators: BEGIN on success and COMMIT/ROLLBACK on failure
+     * @param {Function} operation Operation to perform. Established connection is passed as an argument
+     * @returns {TransactionWrapper} Wrapped operation to pass to query functions
+     */
+    transaction: wrapWithTransaction
 };

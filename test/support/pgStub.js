@@ -59,6 +59,9 @@ Client.prototype.connect = function(callback) {
 Client.prototype.query = function(query, args, callback) {
     var that = this;
     process.nextTick(function(){
+        if ("function" === typeof args) {
+            callback = args;
+        }
         var config = that.config;
         if (null == config) {
             return callback();
